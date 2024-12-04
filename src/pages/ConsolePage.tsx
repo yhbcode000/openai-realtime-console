@@ -10,6 +10,7 @@
  */
 const LOCAL_RELAY_SERVER_URL: string =
   process.env.REACT_APP_LOCAL_RELAY_SERVER_URL || '';
+const TOOL_SERVER_URL: string = process.env.REACT_APP_TOOL_SERVER_URL || "http://localhost:5001";
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 
@@ -62,8 +63,8 @@ export function ConsolePage() {
   const apiKey = LOCAL_RELAY_SERVER_URL
     ? ''
     : localStorage.getItem('tmp::voice_api_key') ||
-      prompt('OpenAI API Key') ||
-      '';
+    prompt('OpenAI API Key') ||
+    '';
   if (apiKey !== '') {
     localStorage.setItem('tmp::voice_api_key', apiKey);
   }
@@ -85,9 +86,9 @@ export function ConsolePage() {
       LOCAL_RELAY_SERVER_URL
         ? { url: LOCAL_RELAY_SERVER_URL }
         : {
-            apiKey: apiKey,
-            dangerouslyAllowAPIKeyInBrowser: true,
-          }
+          apiKey: apiKey,
+          dangerouslyAllowAPIKeyInBrowser: true,
+        }
     )
   );
 
@@ -455,6 +456,76 @@ export function ConsolePage() {
       }
     );
 
+
+    (async () => {
+      const toolDetails = []; // Initialize a list to store tool details
+
+      try {
+        const response = await fetch(`${TOOL_SERVER_URL}/api/tool_names_functions`);
+        if (!response.ok) {
+          console.error('Failed to load tools');
+          return;
+        }
+        const tools = await response.json();
+
+        // Fetch detailed tool definitions
+        for (const tool of tools) {
+          try {
+            const toolDetailResponse = await fetch(`${TOOL_SERVER_URL}/api/tool_definition/${tool.name}`);
+            if (!toolDetailResponse.ok) {
+              console.error(`Failed to load tool definition for ${tool.name}`);
+              continue;
+            }
+            const toolDetail = await toolDetailResponse.json();
+            toolDetails.push(toolDetail); // Save tool detail to the list
+          } catch (toolDetailError) {
+            console.error(`Error loading tool detail for ${tool.name}:`, toolDetailError);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading tools:', error);
+      }
+
+      // Add tools to the client outside the async calls
+      for (const toolDetail of toolDetails) {
+        try {
+          // Check if the tool is already added
+          if (Object.keys(client.tools).includes(toolDetail.name)) {
+            console.log(`Tool ${toolDetail.name} is already added. Skipping.`);
+            continue;
+          }
+
+          client.addTool(
+            toolDetail,
+            async (query: string) => {
+              try {
+                const executeResponse = await fetch(`${TOOL_SERVER_URL}/api/execute/${toolDetail.name}`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(query),
+                });
+
+                if (!executeResponse.ok) {
+                  console.error(`Failed to execute tool ${toolDetail.name}`);
+                  return;
+                }
+
+                const result = await executeResponse.json();
+                return result;
+              } catch (executeError) {
+                console.error(`Error executing tool ${toolDetail.name}:`, executeError);
+              }
+            }
+          );
+        } catch (addToolError) {
+          console.error(`Error adding tool ${toolDetail.name}:`, addToolError);
+        }
+      }
+    })();
+
+
     // handle realtime events from client + server for event logging
     client.on('realtime.event', (realtimeEvent: RealtimeEvent) => {
       setRealtimeEvents((realtimeEvents) => {
@@ -565,11 +636,10 @@ export function ConsolePage() {
                         }}
                       >
                         <div
-                          className={`event-source ${
-                            event.type === 'error'
-                              ? 'error'
-                              : realtimeEvent.source
-                          }`}
+                          className={`event-source ${event.type === 'error'
+                            ? 'error'
+                            : realtimeEvent.source
+                            }`}
                         >
                           {realtimeEvent.source === 'client' ? (
                             <ArrowUp />
@@ -639,7 +709,7 @@ export function ConsolePage() {
                               (conversationItem.formatted.audio?.length
                                 ? '(awaiting transcript)'
                                 : conversationItem.formatted.text ||
-                                  '(item sent)')}
+                                '(item sent)')}
                           </div>
                         )}
                       {!conversationItem.formatted.tool &&
