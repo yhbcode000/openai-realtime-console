@@ -494,6 +494,13 @@ export function ConsolePage() {
       setItems(items);
     });
 
+    // Fix the issue that openAI is replying two consecutive "function call output" messages with the first one errouneously complaining "tool not added"
+    client.on('conversation.item.completed', ({ item }) => {
+      if (item.type === 'function_call') {
+        client.addText  // todo
+      }
+    });
+
     setItems(client.conversation.getItems());
 
     return () => {
@@ -730,4 +737,34 @@ export function ConsolePage() {
       </div>
     </div>
   );
+}
+
+interface ToolCollection {
+  [key: string]: {};
+}
+interface RealtimeClientTyped {
+  tools: ToolCollection;
+  updateSession: Function;
+}
+const addToolFixed = (
+  client: RealtimeClientTyped, definition: {
+    name: string;
+    description?: string;
+    parameters?: {};
+    type?: string;
+  }, handler: Function, 
+) => {
+  const name = definition.name;
+  if (client.tools[name]) {
+    throw new Error(
+      `Tool "${name}" already added. Please use .removeTool("${name}") before trying to add again.`,
+    );
+  }
+
+  client.tools[name] = {
+    definition: { ...definition, type: 'function' }, 
+    handler,
+  };
+  client.updateSession();
+  return client.tools[name];
 }
