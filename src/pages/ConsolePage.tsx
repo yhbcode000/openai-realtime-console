@@ -23,7 +23,6 @@ import { WavRenderer } from '../utils/wav_renderer';
 import { X, Edit, Zap, ArrowUp, ArrowDown } from 'react-feather';
 import { Button } from '../components/button/Button';
 import { Toggle } from '../components/toggle/Toggle';
-import { Map } from '../components/Map';
 
 import './ConsolePage.scss';
 import { isJsxOpeningLikeElement } from 'typescript';
@@ -31,19 +30,6 @@ import { isJsxOpeningLikeElement } from 'typescript';
 /**
  * Type for result from get_weather() function call
  */
-interface Coordinates {
-  lat: number;
-  lng: number;
-  location?: string;
-  temperature?: {
-    value: number;
-    units: string;
-  };
-  wind_speed?: {
-    value: number;
-    units: string;
-  };
-}
 
 /**
  * Type for all event logs
@@ -53,6 +39,19 @@ interface RealtimeEvent {
   source: 'client' | 'server';
   count?: number;
   event: { [key: string]: any };
+}
+
+interface ConversationItem {
+  id: string;
+  type: string;
+  object: string;
+  status: string;
+  role: string;
+  content: [];
+  call_id: string;
+  name: string;
+  arguments: string;
+  output: string;
 }
 
 export function ConsolePage() {
@@ -119,12 +118,6 @@ export function ConsolePage() {
   const [isConnected, setIsConnected] = useState(false);
   const [canPushToTalk, setCanPushToTalk] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
-  const [memoryKv, setMemoryKv] = useState<{ [key: string]: any }>({});
-  const [coords, setCoords] = useState<Coordinates | null>({
-    lat: 37.775593,
-    lng: -122.418137,
-  });
-  const [marker, setMarker] = useState<Coordinates | null>(null);
 
   /**
    * Utility for formatting the timing of logs
@@ -182,17 +175,17 @@ export function ConsolePage() {
 
     // Connect to realtime API
     await client.connect();
-    client.sendUserMessageContent([
-      {
-        type: `input_text`,
-        text: `Hello!`,
-        // text: `For testing purposes, I want you to list ten car brands. Number each item, e.g. "one (or whatever number you are one): the item name".`
-      },
-    ]);
+    // client.sendUserMessageContent([
+    //   {
+    //     type: `input_text`,
+    //     text: `Hello ChatPiano!`,
+    //     // text: `For testing purposes, I want you to list ten car brands. Number each item, e.g. "one (or whatever number you are one): the item name".`
+    //   },
+    // ]);
 
-    if (client.getTurnDetectionType() === 'server_vad') {
-      await wavRecorder.record((data) => client.appendInputAudio(data.mono));
-    }
+    // if (client.getTurnDetectionType() === 'server_vad') {
+    //   await wavRecorder.record((data) => client.appendInputAudio(data.mono));
+    // }
   }, []);
 
   /**
@@ -202,12 +195,6 @@ export function ConsolePage() {
     setIsConnected(false);
     setRealtimeEvents([]);
     setItems([]);
-    setMemoryKv({});
-    setCoords({
-      lat: 37.775593,
-      lng: -122.418137,
-    });
-    setMarker(null);
 
     const client = clientRef.current;
     client.disconnect();
@@ -375,6 +362,7 @@ export function ConsolePage() {
   useEffect(() => {
     // Get refs
     const wavStreamPlayer = wavStreamPlayerRef.current;
+    const wavRecorder = wavRecorderRef.current;
     const client = clientRef.current;
 
     // Set instructions
@@ -495,9 +483,9 @@ export function ConsolePage() {
     });
 
     // Fix the issue that openAI is replying two consecutive "function call output" messages with the first one errouneously complaining "tool not added"
-    client.on('conversation.item.completed', ({ item }) => {
+    client.on('conversation.item.completed', async (item: ConversationItem) => {
       if (item.type === 'function_call') {
-        client.addText  // todo
+        client.createResponse();
       }
     });
 
@@ -698,40 +686,6 @@ export function ConsolePage() {
                 isConnected ? disconnectConversation : connectConversation
               }
             />
-          </div>
-        </div>
-        <div className="content-right">
-          <div className="content-block map">
-            <div className="content-block-title">get_weather()</div>
-            <div className="content-block-title bottom">
-              {marker?.location || 'not yet retrieved'}
-              {!!marker?.temperature && (
-                <>
-                  <br />
-                  🌡️ {marker.temperature.value} {marker.temperature.units}
-                </>
-              )}
-              {!!marker?.wind_speed && (
-                <>
-                  {' '}
-                  🍃 {marker.wind_speed.value} {marker.wind_speed.units}
-                </>
-              )}
-            </div>
-            <div className="content-block-body full">
-              {coords && (
-                <Map
-                  center={[coords.lat, coords.lng]}
-                  location={coords.location}
-                />
-              )}
-            </div>
-          </div>
-          <div className="content-block kv">
-            <div className="content-block-title">set_memory()</div>
-            <div className="content-block-body content-kv">
-              {JSON.stringify(memoryKv, null, 2)}
-            </div>
           </div>
         </div>
       </div>
