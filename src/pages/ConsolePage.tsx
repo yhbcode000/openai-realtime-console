@@ -369,6 +369,12 @@ export function ConsolePage() {
     client.updateSession({ instructions: instructions });
     // Set transcription, otherwise we don't get user transcriptions back
     client.updateSession({ input_audio_transcription: { model: 'whisper-1' } });
+    client.updateSession({ 
+      voice: 'alloy', 
+      // voice: 'shimmer', 
+      // voice: 'echo', 
+    });
+
 
     // >>>>>>>> ChatPiano tools
     let abort = false;
@@ -483,9 +489,11 @@ export function ConsolePage() {
     });
 
     // Fix the issue that openAI is replying two consecutive "function call output" messages with the first one errouneously complaining "tool not added"
-    client.on('conversation.item.completed', async (item: ConversationItem) => {
-      if (item.type === 'function_call') {
-        client.createResponse();
+    client.on('conversation.item.completed', async (item: {item: ConversationItem}) => {
+      if (item.item.type === 'function_call_output') {
+        if (item.item.output.includes('has not been added'))
+          return;
+        // client.createResponse();
       }
     });
 
