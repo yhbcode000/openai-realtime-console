@@ -456,7 +456,8 @@ export function ConsolePage() {
       }
     );
 
-
+    // >>>>>>>> ChatPiano tools
+    let abort = false;
     (async () => {
       const toolDetails = []; // Initialize a list to store tool details
 
@@ -488,12 +489,15 @@ export function ConsolePage() {
 
       // Add tools to the client outside the async calls
       for (const toolDetail of toolDetails) {
+        if (abort) {
+          break;
+        }
         try {
-          // Check if the tool is already added
-          if (Object.keys(client.tools).includes(toolDetail.name)) {
-            console.log(`Tool ${toolDetail.name} is already added. Skipping.`);
-            continue;
-          }
+          // // Check if the tool is already added
+          // if (Object.keys(client.tools).includes(toolDetail.name)) {
+          //   console.log(`Tool ${toolDetail.name} is already added. Skipping.`);
+          //   continue;
+          // }
 
           client.addTool(
             toolDetail,
@@ -519,12 +523,13 @@ export function ConsolePage() {
               }
             }
           );
+          console.log(`Added tool ${toolDetail.name}.`);
         } catch (addToolError) {
           console.error(`Error adding tool ${toolDetail.name}:`, addToolError);
         }
       }
     })();
-
+    // <<<<<<<< ChatPiano tools
 
     // handle realtime events from client + server for event logging
     client.on('realtime.event', (realtimeEvent: RealtimeEvent) => {
@@ -567,6 +572,7 @@ export function ConsolePage() {
 
     return () => {
       // cleanup; resets to defaults
+      abort = true;
       client.reset();
     };
   }, []);
