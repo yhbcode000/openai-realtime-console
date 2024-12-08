@@ -23,7 +23,6 @@ import { WavRenderer } from '../utils/wav_renderer';
 import { X, Edit, Zap, ArrowUp, ArrowDown } from 'react-feather';
 import { Button } from '../components/button/Button';
 import { Toggle } from '../components/toggle/Toggle';
-import { Map } from '../components/Map';
 
 import './ConsolePage.scss';
 import { isJsxOpeningLikeElement } from 'typescript';
@@ -31,19 +30,6 @@ import { isJsxOpeningLikeElement } from 'typescript';
 /**
  * Type for result from get_weather() function call
  */
-interface Coordinates {
-  lat: number;
-  lng: number;
-  location?: string;
-  temperature?: {
-    value: number;
-    units: string;
-  };
-  wind_speed?: {
-    value: number;
-    units: string;
-  };
-}
 
 /**
  * Type for all event logs
@@ -53,6 +39,19 @@ interface RealtimeEvent {
   source: 'client' | 'server';
   count?: number;
   event: { [key: string]: any };
+}
+
+interface ConversationItem {
+  id: string;
+  type: string;
+  object: string;
+  status: string;
+  role: string;
+  content: [];
+  call_id: string;
+  name: string;
+  arguments: string;
+  output: string;
 }
 
 export function ConsolePage() {
@@ -119,12 +118,6 @@ export function ConsolePage() {
   const [isConnected, setIsConnected] = useState(false);
   const [canPushToTalk, setCanPushToTalk] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
-  const [memoryKv, setMemoryKv] = useState<{ [key: string]: any }>({});
-  const [coords, setCoords] = useState<Coordinates | null>({
-    lat: 37.775593,
-    lng: -122.418137,
-  });
-  const [marker, setMarker] = useState<Coordinates | null>(null);
 
   /**
    * Utility for formatting the timing of logs
@@ -182,17 +175,17 @@ export function ConsolePage() {
 
     // Connect to realtime API
     await client.connect();
-    client.sendUserMessageContent([
-      {
-        type: `input_text`,
-        text: `Hello!`,
-        // text: `For testing purposes, I want you to list ten car brands. Number each item, e.g. "one (or whatever number you are one): the item name".`
-      },
-    ]);
+    // client.sendUserMessageContent([
+    //   {
+    //     type: `input_text`,
+    //     text: `Hello ChatPiano!`,
+    //     // text: `For testing purposes, I want you to list ten car brands. Number each item, e.g. "one (or whatever number you are one): the item name".`
+    //   },
+    // ]);
 
-    if (client.getTurnDetectionType() === 'server_vad') {
-      await wavRecorder.record((data) => client.appendInputAudio(data.mono));
-    }
+    // if (client.getTurnDetectionType() === 'server_vad') {
+    //   await wavRecorder.record((data) => client.appendInputAudio(data.mono));
+    // }
   }, []);
 
   /**
@@ -202,12 +195,6 @@ export function ConsolePage() {
     setIsConnected(false);
     setRealtimeEvents([]);
     setItems([]);
-    setMemoryKv({});
-    setCoords({
-      lat: 37.775593,
-      lng: -122.418137,
-    });
-    setMarker(null);
 
     const client = clientRef.current;
     client.disconnect();
@@ -375,88 +362,22 @@ export function ConsolePage() {
   useEffect(() => {
     // Get refs
     const wavStreamPlayer = wavStreamPlayerRef.current;
+    const wavRecorder = wavRecorderRef.current;
     const client = clientRef.current;
 
     // Set instructions
     client.updateSession({ instructions: instructions });
     // Set transcription, otherwise we don't get user transcriptions back
     client.updateSession({ input_audio_transcription: { model: 'whisper-1' } });
-
-    // Add tools
-    client.addTool(
-      {
-        name: 'set_memory',
-        description: 'Saves important data about the user into memory.',
-        parameters: {
-          type: 'object',
-          properties: {
-            key: {
-              type: 'string',
-              description:
-                'The key of the memory value. Always use lowercase and underscores, no other characters.',
-            },
-            value: {
-              type: 'string',
-              description: 'Value can be anything represented as a string',
-            },
-          },
-          required: ['key', 'value'],
-        },
-      },
-      async ({ key, value }: { [key: string]: any }) => {
-        setMemoryKv((memoryKv) => {
-          const newKv = { ...memoryKv };
-          newKv[key] = value;
-          return newKv;
-        });
-        return { ok: true };
-      }
-    );
-    client.addTool(
-      {
-        name: 'get_weather',
-        description:
-          'Retrieves the weather for a given lat, lng coordinate pair. Specify a label for the location.',
-        parameters: {
-          type: 'object',
-          properties: {
-            lat: {
-              type: 'number',
-              description: 'Latitude',
-            },
-            lng: {
-              type: 'number',
-              description: 'Longitude',
-            },
-            location: {
-              type: 'string',
-              description: 'Name of the location',
-            },
-          },
-          required: ['lat', 'lng', 'location'],
-        },
-      },
-      async ({ lat, lng, location }: { [key: string]: any }) => {
-        setMarker({ lat, lng, location });
-        setCoords({ lat, lng, location });
-        const result = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m`
-        );
-        const json = await result.json();
-        const temperature = {
-          value: json.current.temperature_2m as number,
-          units: json.current_units.temperature_2m as string,
-        };
-        const wind_speed = {
-          value: json.current.wind_speed_10m as number,
-          units: json.current_units.wind_speed_10m as string,
-        };
-        setMarker({ lat, lng, location, temperature, wind_speed });
-        return json;
-      }
-    );
+    client.updateSession({ 
+      voice: 'alloy', 
+      // voice: 'shimmer', 
+      // voice: 'echo', 
+    });
 
 
+    // >>>>>>>> ChatPiano tools
+    let abort = false;
     (async () => {
       const toolDetails = []; // Initialize a list to store tool details
 
@@ -488,12 +409,15 @@ export function ConsolePage() {
 
       // Add tools to the client outside the async calls
       for (const toolDetail of toolDetails) {
+        if (abort) {
+          break;
+        }
         try {
-          // Check if the tool is already added
-          if (Object.keys(client.tools).includes(toolDetail.name)) {
-            console.log(`Tool ${toolDetail.name} is already added. Skipping.`);
-            continue;
-          }
+          // // Check if the tool is already added
+          // if (Object.keys(client.tools).includes(toolDetail.name)) {
+          //   console.log(`Tool ${toolDetail.name} is already added. Skipping.`);
+          //   continue;
+          // }
 
           client.addTool(
             toolDetail,
@@ -519,12 +443,13 @@ export function ConsolePage() {
               }
             }
           );
+          console.log(`Added tool ${toolDetail.name}.`);
         } catch (addToolError) {
           console.error(`Error adding tool ${toolDetail.name}:`, addToolError);
         }
       }
     })();
-
+    // <<<<<<<< ChatPiano tools
 
     // handle realtime events from client + server for event logging
     client.on('realtime.event', (realtimeEvent: RealtimeEvent) => {
@@ -563,10 +488,20 @@ export function ConsolePage() {
       setItems(items);
     });
 
+    // Fix the issue that openAI is replying two consecutive "function call output" messages with the first one errouneously complaining "tool not added"
+    client.on('conversation.item.completed', async (item: {item: ConversationItem}) => {
+      if (item.item.type === 'function_call_output') {
+        if (item.item.output.includes('has not been added'))
+          return;
+        // client.createResponse();
+      }
+    });
+
     setItems(client.conversation.getItems());
 
     return () => {
       // cleanup; resets to defaults
+      abort = true;
       client.reset();
     };
   }, []);
@@ -761,41 +696,37 @@ export function ConsolePage() {
             />
           </div>
         </div>
-        <div className="content-right">
-          <div className="content-block map">
-            <div className="content-block-title">get_weather()</div>
-            <div className="content-block-title bottom">
-              {marker?.location || 'not yet retrieved'}
-              {!!marker?.temperature && (
-                <>
-                  <br />
-                  🌡️ {marker.temperature.value} {marker.temperature.units}
-                </>
-              )}
-              {!!marker?.wind_speed && (
-                <>
-                  {' '}
-                  🍃 {marker.wind_speed.value} {marker.wind_speed.units}
-                </>
-              )}
-            </div>
-            <div className="content-block-body full">
-              {coords && (
-                <Map
-                  center={[coords.lat, coords.lng]}
-                  location={coords.location}
-                />
-              )}
-            </div>
-          </div>
-          <div className="content-block kv">
-            <div className="content-block-title">set_memory()</div>
-            <div className="content-block-body content-kv">
-              {JSON.stringify(memoryKv, null, 2)}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
+}
+
+interface ToolCollection {
+  [key: string]: {};
+}
+interface RealtimeClientTyped {
+  tools: ToolCollection;
+  updateSession: Function;
+}
+const addToolFixed = (
+  client: RealtimeClientTyped, definition: {
+    name: string;
+    description?: string;
+    parameters?: {};
+    type?: string;
+  }, handler: Function, 
+) => {
+  const name = definition.name;
+  if (client.tools[name]) {
+    throw new Error(
+      `Tool "${name}" already added. Please use .removeTool("${name}") before trying to add again.`,
+    );
+  }
+
+  client.tools[name] = {
+    definition: { ...definition, type: 'function' }, 
+    handler,
+  };
+  client.updateSession();
+  return client.tools[name];
 }
