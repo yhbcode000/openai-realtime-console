@@ -41,13 +41,14 @@ Today's demo:
 > Ziyu:【show demo】
 > Zhang：太好了。有没有可能让 AI 再谱写出钢琴伴奏。正巧，这次钢琴演奏家没有和我们一起来，但我听说你们这里有一台能弹钢琴的 AI?
 > Ziyu: 然，我们正在进行一个 nb 的 project, 把作曲，演奏，交互，对话全都结合到一起。当然，还在试验阶段，我想有请我的 colleagues Haobo & Daniel 为大家展示。
-> Haobo: Hi everyone. This project is called ChatPiano, your personal musician friend on a piano. 
-> {a brief intro to the system, how you made it}
-> Hi ChatPiano, this is Haobo. We are in a concert now and we need your help. Do you recognize the piece just played, which I think is demo No.1 composed by Ziyu’s whole song generation system? 
-> ChatPiano: Yes, {a brief one-sentence description of the piece}
-> Just to make sure my understanding is correct, here is the beginning of the melody of the piece, right?
+> Haobo: Hi everyone. I’m Haobo, and this project is called ChatPiano, your personal musician friend on a piano. ChatPiano, can you hear me?
+> ChatPiano: Yes, loud and clear.
+> Haobo: Under the hood, it’s an LLM agent not only controlling a piano but also an arsenal of music AI tools. Now, why don’t we let ChatPiano briefly introduce itself?
+> ChatPiano: {Introduces self, explaining its role and functions.}
+> Haobo: Fantastic. We are in a concert now and we need your help. Do you recognize the piece we just played, which I think is demo No.1 composed by Ziyu’s whole song generation system? 
+> ChatPiano: Yes, {a brief one-sentence description of the piece} Just to make sure my understanding is correct, here is the beginning of the melody of the piece, right?
 > ChatPiano plays the start of the melody track.
-> Haobo: [interrupt], yes, that’s right. You got the right piece. Now, a new job for you, a challenging one – could you generate a trio version of this piece with a two-part piano accompaniment? Describe your musical choices and technical solutions.
+> Haobo: [interrupts ChatPiano], yes, that’s right. You got the right piece. Now, a new job for you, a challenging one – could you generate a trio version of this piece with a two-part piano accompaniment? Describe your musical choices and technical solutions.
 > ChatPiano generates midi. {Concise summary of musical decisions, e.g. chords, texture, how many parts/voices; state the name of the DL model used.}
 > Haobo: Could we listen to it?
 > ChatPiano checks status > Job still ongoing. Well, I am still generating it… But I composed something similar yesterday using the original whole-song generation model during rehearsal. Shall we have a preview?
@@ -55,7 +56,7 @@ Today's demo:
 > ChatPiano plays midi. {doesn’t say a word!}
 > The Player Piano finishes playing.
 > Gus: That’s very cool. But I notice that your performance is still mechanical…
-> ChatPiano: That’s right. I haven’t learned to play expressively yet, but if you play expressively, I can follow your improvised tempo. I use realtime…
+> ChatPiano: That’s right. I haven’t learned to play expressively yet, but if *you* play expressively, I can follow your improvised tempo. I use realtime…
 > Gus: (interrupts ChatPiano) Cool, let’s perform it. Let’s welcome Zhang to play the lead part and my colleague Yuxuan to play the second part and the player piano can take charge of the third part. 
 > ChatPiano starts the realtime accompaniment phase. Ready when you are!
 > Laptop 关闭麦克风.
