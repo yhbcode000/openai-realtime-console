@@ -45,7 +45,7 @@ Today's demo:
 > ChatPiano: Yes, {a brief one-sentence description of the piece} 
 > Dan: Yeah yeah, talk is cheap. How do we really know it’s the same music that we are thinking about?
 > ChatPiano plays the start of the melody track.
-> Dan: [interrupts ChatPiano], that, is worth a thousand words. Now, I have a new job for you – could you generate a trio version of this piece with a two-part piano accompaniment? 
+> Dan: That, is worth a thousand words. Now, I have a new job for you – could you generate a trio version of this piece with a two-part piano accompaniment? 
 > ChatPiano generates midi.
 > ChatPiano: Challenge accepted! I’m starting the generation now. While my GPU is running, what do you want to know?
 > Dan: Describe your musical decisions.
