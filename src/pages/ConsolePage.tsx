@@ -489,10 +489,15 @@ export function ConsolePage() {
     });
 
     // Fix the issue that openAI is replying two consecutive "function call output" messages with the first one errouneously complaining "tool not added"
-    client.on('conversation.item.completed', async (item: {item: ConversationItem}) => {
-      if (item.item.type === 'function_call_output') {
-        if (item.item.output.includes('has not been added'))
+    client.on('conversation.item.completed', async (event: {item: ConversationItem}) => {
+      if (event.item.type === 'function_call_output') {
+        if (event.item.output.includes('has not been added')) {
+          client.conversation.items = client.conversation.items.filter(
+            (i: ItemType) => i.id !== event.item.id
+          );
+          console.log('DAN!');
           return;
+        }
         // client.createResponse();
       }
     });
