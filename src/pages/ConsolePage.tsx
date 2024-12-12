@@ -253,6 +253,8 @@ export function ConsolePage() {
         type: 'server_vad', 
         // silence_duration_ms: 500, // default
         silence_duration_ms: 700,
+        // threshold: 0.5, // default
+        threshold: 0.7, 
       },
     });
     if (value === 'server_vad' && client.isConnected()) {
@@ -524,7 +526,7 @@ export function ConsolePage() {
       <div className="content-top">
         <div className="content-title">
           <img src="/openai-logomark.svg" />
-          <span>realtime console: ChatPiano with 中国交响乐团</span>
+          <span>ChatPiano with 中国交响乐团</span>
         </div>
         <div className="content-api-key">
           {!LOCAL_RELAY_SERVER_URL && (
