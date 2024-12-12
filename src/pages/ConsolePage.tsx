@@ -499,7 +499,8 @@ export function ConsolePage() {
           client.conversation.items = client.conversation.items.filter(
             (i: ItemType) => i.id !== event.item.id
           );
-          console.log('DAN!');
+          console.log('Droping error msg:');
+          console.log(event.item);
           return;
         }
         // client.createResponse();
