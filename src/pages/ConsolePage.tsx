@@ -249,7 +249,13 @@ export function ConsolePage() {
       await wavRecorder.pause();
     }
     client.updateSession({
-      turn_detection: value === 'none' ? null : { type: 'server_vad' },
+      turn_detection: value === 'none' ? null : {
+        type: 'server_vad', 
+        // silence_duration_ms: 500, // default
+        silence_duration_ms: 700,
+        // threshold: 0.5, // default
+        threshold: 0.7, 
+      },
     });
     if (value === 'server_vad' && client.isConnected()) {
       await wavRecorder.record((data) => client.appendInputAudio(data.mono));
@@ -489,10 +495,16 @@ export function ConsolePage() {
     });
 
     // Fix the issue that openAI is replying two consecutive "function call output" messages with the first one errouneously complaining "tool not added"
-    client.on('conversation.item.completed', async (item: {item: ConversationItem}) => {
-      if (item.item.type === 'function_call_output') {
-        if (item.item.output.includes('has not been added'))
+    client.on('conversation.item.completed', async (event: {item: ConversationItem}) => {
+      if (event.item.type === 'function_call_output') {
+        if (event.item.output.includes('has not been added')) {
+          client.conversation.items = client.conversation.items.filter(
+            (i: ItemType) => i.id !== event.item.id
+          );
+          console.log('Droping error msg:');
+          console.log(event.item);
           return;
+        }
         // client.createResponse();
       }
     });
@@ -514,7 +526,7 @@ export function ConsolePage() {
       <div className="content-top">
         <div className="content-title">
           <img src="/openai-logomark.svg" />
-          <span>realtime console</span>
+          <span>ChatPiano with 中国交响乐团</span>
         </div>
         <div className="content-api-key">
           {!LOCAL_RELAY_SERVER_URL && (
